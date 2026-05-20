@@ -7,19 +7,23 @@ import { useEffect, useState } from 'react';
 // Emojis para os pares de cartas (10 pares = 20 cartas)
 const cardEmojis = ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯'];
 
+const PREVIEW_SECONDS = 5;
+
 function App() {
   const [cards, setCards] = useState([]);
   const [score, setScore] = useState(0);
   const [moves, setMoves] = useState(0);
   const [flippedCards, setFlippedCards] = useState([]); // IDs das cartas viradas aguardando verificação
   const [lockBoard, setLockBoard] = useState(false); // Trava o board enquanto verifica o par
+  const [previewPhase, setPreviewPhase] = useState(false);
+  const [countdown, setCountdown] = useState(0);
 
   const initializeGame = () => {
     // Criar pares e adicionar IDs
     const pairedCards = [...cardEmojis, ...cardEmojis].map((value, index) => ({
       id: index,
       value,
-      isFlipped: false,
+      isFlipped: true, // começa virado para o preview
       isMatched: false
     }));
 
@@ -29,8 +33,25 @@ function App() {
     setScore(0);
     setMoves(0);
     setFlippedCards([]);
-    setLockBoard(false);
+    setLockBoard(true);
+    setPreviewPhase(true);
+    setCountdown(PREVIEW_SECONDS);
   };
+
+  // Countdown e fim do preview
+  useEffect(() => {
+    if (!previewPhase) return;
+
+    if (countdown <= 0) {
+      setPreviewPhase(false);
+      setLockBoard(false);
+      setCards(prev => prev.map(card => ({ ...card, isFlipped: false })));
+      return;
+    }
+
+    const timer = setTimeout(() => setCountdown(c => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [previewPhase, countdown]);
 
   useEffect(() => {
     initializeGame();
@@ -107,6 +128,14 @@ function App() {
       <div className="max-w-4xl mx-auto">
         <div className='App'>
           <GameHeader score={score} moves={moves} onNewGame={initializeGame} />
+
+          {/* Banner de preview */}
+          {previewPhase && (
+            <div className="bg-yellow-500/90 backdrop-blur-sm rounded-2xl p-4 mb-4 text-center text-white font-bold text-xl">
+              👀 Memorize as cartas! O jogo começa em{' '}
+              <span className="text-3xl font-extrabold">{countdown}</span>s
+            </div>
+          )}
 
           {/* Mensagem de vitória */}
           {allMatched && (
